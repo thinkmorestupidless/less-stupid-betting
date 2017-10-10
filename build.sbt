@@ -1,10 +1,19 @@
+
 val akkaVersion = "2.5.4"
 
-val `less-stupid-betting` = project
-  .in(file("."))
+organization in ThisBuild := "less.stupid"
+version in ThisBuild := "1.0-SNAPSHOT"
+
+// the Scala version that will be used for cross-compiled libraries
+scalaVersion in ThisBuild := "2.12.2"
+
+EclipseKeys.projectFlavor in Global := EclipseProjectFlavor.Java
+
+lazy val `less-stupid-betting` = (project in file("."))
+  .aggregate(`betting-services`, `spark-jobs`)
+
+lazy val `betting-services` = (project in file("services"))
   .settings(
-    organization := "com.typesafe.akka.samples",
-    scalaVersion := "2.12.2",
     scalacOptions in Compile ++= Seq("-deprecation", "-feature", "-unchecked", "-Xlog-reflective-calls", "-Xlint"),
     javacOptions in Compile ++= Seq("-Xlint:unchecked", "-Xlint:deprecation"),
     javacOptions in doc in Compile := Seq("-Xdoclint:none"),
@@ -23,10 +32,18 @@ val `less-stupid-betting` = project
       "com.github.javafaker" % "javafaker" % "0.10",
       "org.projectlombok" % "lombok" % "1.16.10",
       "com.typesafe.akka" %% "akka-persistence-cassandra-launcher" % "0.55" % Test,
-      "org.scalatest" %% "scalatest" % "3.0.1" % Test,
+      "org.scalatest" %% "scalatest" % "3.0.1" % Test),
     fork in run := true,
     mainClass in (Compile, run) := Some("less.stupid.betting.exchange.ExchangeApp"),
     // disable parallel tests
     parallelExecution in Test := false,
     licenses := Seq(("CC0", url("http://creativecommons.org/publicdomain/zero/1.0")))
   )
+
+lazy val `spark-jobs` = (project in file("spark"))
+.settings(
+  libraryDependencies ++= Seq(
+    "org.apache.spark" % "spark-core_2.11" % "2.2.0",
+    "org.apache.spark" % "spark-sql_2.11" % "2.2.0"
+  )
+)
