@@ -36,9 +36,10 @@ public class StrategyApp {
             ActorRef handler = system.actorOf(StrategyCommandHandler.props(strategies));
 
             ActorRef broker = system.actorOf(KafkaActor.props(), "strategy-broker");
+            ActorRef eventHandler = system.actorOf(ExchangeEventHandler.props(broker), "event-handler");
 
             if (port.equals("0")) {
-                Thread.sleep(10000);
+                eventHandler.tell(new StrategyProtocol.Start(), ActorRef.noSender());
 //                handler.tell(new StrategyCommand.CreateStrategy(), ActorRef.noSender());
             }
         }

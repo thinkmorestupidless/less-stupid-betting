@@ -5,13 +5,17 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import less.stupid.betting.exchange.FixtureEvent;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.LongDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
@@ -27,6 +31,8 @@ public class KafkaConsumerActor extends AbstractActor {
     }
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+
+    private final ObjectMapper mapper = new ObjectMapper();
 
     private final Map<String, Set<ActorRef>> subscribers = Maps.newHashMap();
 
@@ -45,7 +51,7 @@ public class KafkaConsumerActor extends AbstractActor {
         final Consumer<Long, String> consumer = new KafkaConsumer<Long, String>(props);
 
         // Subscribe to the topic.
-        consumer.subscribe(Collections.singletonList("events"));
+        consumer.subscribe(Collections.singletonList("fixtures"));
         return consumer;
     }
 
@@ -65,7 +71,20 @@ public class KafkaConsumerActor extends AbstractActor {
                             data.put("partition", record.partition());
                             data.put("offset", record.offset());
                             data.put("value", record.value());
+
+                            if (record.topic().equals("fixtures")) {
+                                try {
+                                    FixtureEvent event = mapper.readValue(record.value(), FixtureEvent.class);
+
+                                    log.info("event -> {}", event);
+                                } catch (IOException e) {
+                                    log.error("failed to deserialize json -> {}", e);
+                                }
+                            }
+
                             log.info("data -> {}", data);
+
+
                         }
                     }
                 } catch (WakeupException e) {

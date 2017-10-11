@@ -1,9 +1,11 @@
 package less.stupid.betting.exchange;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.Value;
 
 import java.io.Serializable;
 
+@JsonTypeInfo(property = "type", use = JsonTypeInfo.Id.CLASS)
 public interface FixtureEvent extends Serializable {
 
     String getEventId();
