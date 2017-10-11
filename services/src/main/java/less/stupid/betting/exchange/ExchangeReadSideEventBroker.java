@@ -11,8 +11,8 @@ import akka.persistence.query.Offset;
 import akka.persistence.query.PersistenceQuery;
 import akka.stream.ActorMaterializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import less.stupid.kafka.KafkaClientActor;
-import less.stupid.kafka.KafkaMessage;
+import less.stupid.kafka.KafkaActor;
+import less.stupid.kafka.KafkaProtocol;
 
 import static com.opengamma.strata.collect.Unchecked.wrap;
 
@@ -34,11 +34,13 @@ public class ExchangeReadSideEventBroker extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return receiveBuilder().build();
+        return receiveBuilder()
+                .match(ReadSideProtocol.Start.class, this::start)
+                .build();
     }
 
     public void start(ReadSideProtocol.Start cmd) {
-        kafka = getContext().actorOf(KafkaClientActor.props());
+        kafka = getContext().actorOf(KafkaActor.props());
 
         PersistenceQuery.get(getContext().getSystem())
                 .getReadJournalFor(CassandraReadJournal.class, CassandraReadJournal.Identifier())
@@ -46,7 +48,7 @@ public class ExchangeReadSideEventBroker extends AbstractActor {
     }
 
     public void handleEvent(EventEnvelope env) {
-        log.info("sending message to kafka");
-        kafka.tell(new KafkaMessage.SendMessage("events", 0L, wrap(() -> mapper.writeValueAsString(env.event()))), getSelf());
+        log.info("sending message to kafka -> {}", env.event());
+        kafka.tell(new KafkaProtocol.SendMessage("fixtures", 0L, wrap(() -> mapper.writeValueAsString(env.event()))), getSelf());
     }
 }

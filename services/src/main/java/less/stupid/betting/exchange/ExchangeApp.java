@@ -10,7 +10,6 @@ import akka.util.Timeout;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import less.stupid.kafka.KafkaClientActor;
 
 import scala.concurrent.duration.Duration;
 
@@ -45,9 +44,10 @@ public class ExchangeApp {
             ActorRef broker = system.actorOf(ExchangeReadSideEventBroker.props(), "exchange-event-broker");
 
             readSide.tell(new ReadSideProtocol.Start(), ActorRef.noSender());
+            broker.tell(new ReadSideProtocol.Start(), ActorRef.noSender());
 
             if (port.equals("0")) {
-                exchange.tell(new ExchangeCommand.Start(), system.deadLetters());
+                exchange.tell(new ExchangeCommand.Start(), ActorRef.noSender());
 
                 final MinimalHttpApp myServer = new MinimalHttpApp(readSide);
                 myServer.startServer("localhost", 8080);

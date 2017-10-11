@@ -9,12 +9,14 @@ import akka.event.LoggingAdapter;
 import akka.persistence.journal.PersistencePluginProxy;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import less.stupid.kafka.KafkaActor;
+import less.stupid.kafka.KafkaConsumerActor;
 
 public class StrategyApp {
 
     public static void main(String[] args) throws Exception {
         if (args.length == 0)
-            startup(new String[] { "2551", "2552", "0" });
+            startup(new String[] { "3551", "3552", "0" });
         else
             startup(args);
     }
@@ -33,9 +35,11 @@ public class StrategyApp {
             ActorRef strategies = system.actorOf(Strategies.props());
             ActorRef handler = system.actorOf(StrategyCommandHandler.props(strategies));
 
+            ActorRef broker = system.actorOf(KafkaActor.props(), "strategy-broker");
+
             if (port.equals("0")) {
                 Thread.sleep(10000);
-                handler.tell(new StrategyCommand.CreateStrategy(), system.deadLetters());
+//                handler.tell(new StrategyCommand.CreateStrategy(), ActorRef.noSender());
             }
         }
     }

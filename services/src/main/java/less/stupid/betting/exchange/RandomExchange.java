@@ -67,8 +67,6 @@ public class RandomExchange extends AbstractActor {
     }
 
     public void start(ExchangeCommand.Start cmd) {
-        log.info("starting");
-
         FiniteDuration delay = FiniteDuration.create(1, TimeUnit.SECONDS);
         FiniteDuration interval = FiniteDuration.create(1, TimeUnit.SECONDS);
 
@@ -76,8 +74,6 @@ public class RandomExchange extends AbstractActor {
     }
 
     public void stop(ExchangeCommand.Stop cmd) {
-        log.info("stopping");
-
         if (timer != null && !timer.isCancelled()) {
             timer.cancel();
         }
@@ -140,18 +136,6 @@ public class RandomExchange extends AbstractActor {
             selection.getPrices().setMatchedAndAvailableAtPriceAndSide(mAndA, bet.getPrice(), bet.getSide());
             selectionsChanged.add(selection);
         }
-
-
-
-//        createdEvents.stream()
-//                .flatMap(event -> event.getMarkets().stream())
-//                .flatMap(market -> market.getSelections().stream())
-//                .collect(Collectors.toSet())
-//                .forEach(selection -> {
-//                    if (iShould.changeSelectionPrice()) {
-//                        PriceLadder ladder = selection.getPrices();
-//                    }
-//                });
 
         if (iShould.createEvent()) {
             Date startTime = faker.date().future(14, TimeUnit.DAYS);

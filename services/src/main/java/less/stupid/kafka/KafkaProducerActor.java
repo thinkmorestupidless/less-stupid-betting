@@ -11,10 +11,10 @@ import org.apache.kafka.common.serialization.LongSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import java.util.Properties;
 
-public class KafkaClientActor extends AbstractActor {
+public class KafkaProducerActor extends AbstractActor {
 
     public static Props props() {
-        return Props.create(KafkaClientActor.class, KafkaClientActor::new);
+        return Props.create(KafkaProducerActor.class, KafkaProducerActor::new);
     }
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -42,12 +42,12 @@ public class KafkaClientActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(KafkaMessage.SendMessage.class, this::sendMessage)
+                .match(KafkaProtocol.SendMessage.class, this::sendMessage)
                 .matchAny(o -> log.info("i don't know what to do with -> {}", o))
                 .build();
     }
 
-    public void sendMessage(KafkaMessage.SendMessage m) {
+    public void sendMessage(KafkaProtocol.SendMessage m) {
         log.info("sending message -> {}", m);
 
         final ActorRef sender = getSender();

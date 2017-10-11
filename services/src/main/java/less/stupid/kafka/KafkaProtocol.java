@@ -2,7 +2,7 @@ package less.stupid.kafka;
 
 import lombok.Value;
 
-public interface KafkaMessage {
+public interface KafkaProtocol {
 
     @Value
     class SendMessage {
@@ -12,5 +12,11 @@ public interface KafkaMessage {
         private final Long key;
 
         private final String message;
+    }
+
+    @Value
+    public static class SubscribeToTopic {
+
+        private final String topic;
     }
 }
