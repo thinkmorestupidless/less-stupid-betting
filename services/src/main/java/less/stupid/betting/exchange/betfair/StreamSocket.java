@@ -26,11 +26,13 @@ public class StreamSocket {
 
     private static final String CRLF = "\r\n";
 
-    private final AtomicLong counter = new AtomicLong();
+    private final DefaultStreamRequestFactory requests = new DefaultStreamRequestFactory();
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    private final List<Object> requests = Lists.newCopyOnWriteArrayList();
+    private final Map<Long, StreamEnvelope> envelopes = Maps.newHashMap();
+
+    private final SessionProvider sessions;
 
     private final Config conf;
 
@@ -42,16 +44,19 @@ public class StreamSocket {
 
     private Thread readThread;
 
-    public StreamSocket(Config conf) {
+    public StreamSocket(SessionProvider sessions, Config conf) {
+        this.sessions = sessions;
         this.conf = conf;
     }
 
-    public CompletionStage<StreamEnvelope> send(Object message) {
-        CompletableFuture future = new CompletableFuture();
+    public CompletionStage<StreamResponse> send(StreamRequest request) {
+        StreamEnvelope envelope = new StreamEnvelope(request);
 
-        messagesById.put(counter.incrementAndGet(), message);
+        envelopes.put(request.getId(), envelope);
 
-        return future;
+        doSend(request);
+
+        return envelope.getFuture();
     }
 
     public void doSend(Object message) {
@@ -69,19 +74,30 @@ public class StreamSocket {
         }
     }
 
-    public void connect(Config conf) {
+    public CompletionStage<StreamResponse> authenticate() {
+        return connect().thenCompose(
+                ignored -> sessions.session().thenCompose(
+                        session -> send(requests.authentication(session.sessionToken(), session.applicationKey()))));
+    }
 
-        if (socket == null) {
-            socket = connectSocket(createSocket(conf));
-        }
+    public CompletionStage<Socket> connect() {
+        return socket().thenApply(socket -> this.socket = socket);
     }
 
     public CompletionStage<Done> disconnect() {
         return CompletableFuture.completedFuture(Done.getInstance());
     }
 
-    public Socket connectSocket(Socket socket) {
+    public CompletionStage<Socket> socket() {
+
+        if (socket != null) {
+            return CompletableFuture.completedFuture(socket);
+        }
+
+        CompletableFuture future = new CompletableFuture();
+
         try {
+            Socket socket = _socket();
             socket.setReceiveBufferSize(1024 * 100 * 2);
             socket.setSoTimeout(30 * 1000);
 
@@ -94,7 +110,22 @@ public class StreamSocket {
                         try {
                             String line = reader.readLine();
 
-                            log.info(line);
+                            StreamResponse response = mapper.readValue(line, StreamResponse.class);
+
+                            if (response instanceof StreamResponse.Connection) {
+                                log.info("connection response received");
+                                future.complete(socket);
+                            } else {
+                                log.info("message received -> {}", line);
+
+                                if (envelopes.containsKey(response.getId())) {
+                                    StreamEnvelope envelope = envelopes.get(response.getId());
+
+                                    envelope.getFuture().complete(response);
+                                } else {
+                                    log.warn("we don't appear to have a request for response id {}", response.getId());
+                                }
+                            }
                         } catch (Exception e) {
                             log.error("problem reading from socket -> {}", e);
                         }
@@ -107,7 +138,7 @@ public class StreamSocket {
                     }
                 }
             }))
-                    .start();
+            .start();
 
             writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
         } catch (SocketException e) {
@@ -116,10 +147,10 @@ public class StreamSocket {
             throw new RuntimeException("failed to get stream from socket", e);
         }
 
-        return socket;
+        return future;
     }
 
-    public Socket createSocket(Config conf) {
+    public Socket _socket() {
         String hostName = conf.getString("betfair.stream.uri");
         int port = 80;
 

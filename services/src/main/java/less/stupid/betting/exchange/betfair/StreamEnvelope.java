@@ -1,36 +1,27 @@
 package less.stupid.betting.exchange.betfair;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
 public class StreamEnvelope {
 
-    private final long id;
+    private final StreamRequest request;
 
-    private final Object request;
+    private CompletableFuture<StreamResponse> future;
 
-    private final Object response;
-
-    public StreamEnvelope(long id, Object request, Object response) {
-        this.id = id;
+    public StreamEnvelope(StreamRequest request) {
         this.request = request;
-        this.response = response;
     }
 
-    public StreamEnvelope(long id, Object request) {
-        this(id, request, null);
-    }
-
-    public StreamEnvelope withResponse(Object response) {
-        return new StreamEnvelope(id, request, response);
-    }
-
-    public long getId() {
-        return id;
-    }
-
-    public Object getRequest() {
+    public StreamRequest getRequest() {
         return request;
     }
 
-    public Object getResponse() {
-        return response;
+    public CompletableFuture<StreamResponse> getFuture() {
+        if (future == null) {
+            future = new CompletableFuture<>();
+        }
+
+        return future;
     }
 }
