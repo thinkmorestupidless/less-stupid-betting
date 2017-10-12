@@ -29,6 +29,7 @@ lazy val `betting-services` = (project in file("services"))
       "org.pcollections" % "pcollections" % "2.1.2",
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.7.5",
       "com.opengamma.strata" % "strata-collect" % "1.4.2",
+      "org.asynchttpclient" % "async-http-client" % "2.0.37",
       "com.github.javafaker" % "javafaker" % "0.10",
       "org.projectlombok" % "lombok" % "1.16.10",
       "com.typesafe.akka" %% "akka-persistence-cassandra-launcher" % "0.55" % Test,
