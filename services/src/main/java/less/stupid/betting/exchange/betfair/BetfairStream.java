@@ -1,8 +1,11 @@
 package less.stupid.betting.exchange.betfair;
 
+import akka.Done;
 import com.typesafe.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.CompletionStage;
 
 public class BetfairStream {
 
@@ -10,11 +13,23 @@ public class BetfairStream {
 
     private StreamSocket socket;
 
-    public BetfairStream(SessionProvider sessions, Config config) {
-        socket = new StreamSocket(sessions, config);
+    public BetfairStream(SessionProvider sessions, DefaultStreamRequestFactory requests, Config config) {
+        socket = new StreamSocket(sessions, requests, config);
     }
 
-    public void authenticate() {
-        socket.authenticate().thenAccept(done -> log.info("Authentication is done")).toCompletableFuture().join();
+    public CompletionStage<Done> connect() {
+        return socket.authenticate().thenApply(response -> {
+            if (response instanceof StreamResponse.Status) {
+                StreamResponse.Status status = (StreamResponse.Status) response;
+
+                if (status.getStatusCode().equals("STATUS")) {
+                    return Done.getInstance();
+                }
+
+                throw new RuntimeException(String.format("Failed to connect -> %s", response));
+            }
+
+            throw new RuntimeException(String.format("Failed to connect -> %s", response));
+        });
     }
 }

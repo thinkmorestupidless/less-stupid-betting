@@ -1,7 +1,6 @@
 package less.stupid.betting.exchange.betfair;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import org.asynchttpclient.AsyncHttpClient;
@@ -20,11 +19,14 @@ public class BetfairConnection {
 
     private static final Logger log = LoggerFactory.getLogger(BetfairConnection.class);
 
+    private final SessionProvider sessions;
+
     private final Config conf;
 
     private AsyncHttpClient httpClient;
 
-    public BetfairConnection(Config conf) {
+    public BetfairConnection(SessionProvider sessions, Config conf) {
+        this.sessions = sessions;
         this.conf = conf;
     }
 
@@ -60,5 +62,23 @@ public class BetfairConnection {
                 .execute()
                 .toCompletableFuture()
                 .thenApply(Response::getResponseBody);
+    }
+
+    public CompletionStage<String> execute(String body) {
+        log.info("executing {}", body);
+
+        return sessions.session()
+                .thenCompose(session -> httpClient()
+                    .preparePost("https://api.betfair.com/exchange/betting/json-rpc/v1")
+                    .setBody(body)
+                    .setHeader("Content-Type", "application/json")
+                    .setHeader("Accept", "application/json")
+                    .setHeader("Accept-Charset", "UTF-8")
+                    .setHeader("Accept-Encoding", "gzip, deflate")
+                    .setHeader("X-Application",conf.getString("betfair.applicationKey"))
+                    .setHeader("X-Authentication", session.sessionToken())
+                    .execute()
+                    .toCompletableFuture()
+                    .thenApply(Response::getResponseBody));
     }
 }

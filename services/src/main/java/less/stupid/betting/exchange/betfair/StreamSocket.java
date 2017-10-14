@@ -3,7 +3,6 @@ package less.stupid.betting.exchange.betfair;
 import akka.Done;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import org.slf4j.Logger;
@@ -14,11 +13,9 @@ import javax.net.ssl.SSLSocketFactory;
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class StreamSocket {
 
@@ -26,13 +23,13 @@ public class StreamSocket {
 
     private static final String CRLF = "\r\n";
 
-    private final DefaultStreamRequestFactory requests = new DefaultStreamRequestFactory();
-
     private final ObjectMapper mapper = new ObjectMapper();
 
     private final Map<Long, StreamEnvelope> envelopes = Maps.newHashMap();
 
     private final SessionProvider sessions;
+
+    private final DefaultStreamRequestFactory requests;
 
     private final Config conf;
 
@@ -44,8 +41,9 @@ public class StreamSocket {
 
     private Thread readThread;
 
-    public StreamSocket(SessionProvider sessions, Config conf) {
+    public StreamSocket(SessionProvider sessions, DefaultStreamRequestFactory requests, Config conf) {
         this.sessions = sessions;
+        this.requests = requests;
         this.conf = conf;
     }
 
@@ -114,6 +112,7 @@ public class StreamSocket {
 
                             if (response instanceof StreamResponse.Connection) {
                                 log.info("connection response received");
+
                                 future.complete(socket);
                             } else {
                                 log.info("message received -> {}", line);
