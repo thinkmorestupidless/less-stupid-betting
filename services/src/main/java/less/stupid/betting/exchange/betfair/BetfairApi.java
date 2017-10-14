@@ -1,5 +1,6 @@
 package less.stupid.betting.exchange.betfair;
 
+import com.betfair.aping.containers.EventResultContainer;
 import com.betfair.aping.containers.EventTypeResultContainer;
 import com.betfair.aping.entities.MarketFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,5 +45,22 @@ public class BetfairApi implements ApiConstants, ApiOperations {
 
         return connection.execute(json)
                 .thenApply(body -> wrap(() -> mapper.readValue(body, EventTypeResultContainer.class)));
+    }
+
+    public CompletionStage<EventResultContainer> listEvents(MarketFilter filter) {
+        log.info("listing events");
+
+        JsonRequest request = JsonRequest.create()
+                .withMethod(LIST_EVENTS)
+                .withParam(LOCALE, Locale.getDefault())
+                .withParam(FILTER, filter);
+
+        String json = wrap(() -> mapper.writeValueAsString(request));
+
+        return connection.execute(json)
+                .thenApply(body -> {
+                    log.info(body);
+                    return wrap(() -> mapper.readValue(body, EventResultContainer.class));
+                });
     }
 }

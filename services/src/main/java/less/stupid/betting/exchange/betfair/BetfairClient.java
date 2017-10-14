@@ -1,6 +1,8 @@
 package less.stupid.betting.exchange.betfair;
 
 import akka.Done;
+import com.betfair.aping.entities.Event;
+import com.betfair.aping.entities.EventResult;
 import com.betfair.aping.entities.EventTypeResult;
 import com.betfair.aping.entities.MarketFilter;
 import com.typesafe.config.Config;
@@ -54,5 +56,10 @@ public class BetfairClient implements SessionProvider {
     public CompletionStage<List<EventTypeResult>> listEventTypes(MarketFilter filter) {
         log.info("listing event types");
         return api.listEventTypes(filter).thenApply(response -> response.getResult());
+    }
+
+    public CompletionStage<List<EventResult>> listEvents(MarketFilter filter) {
+        log.info("listing events");
+        return api.listEvents(filter).thenApply(response -> response.getResult());
     }
 }
