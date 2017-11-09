@@ -1,16 +1,23 @@
 package less.stupid.betting.exchange.betfair;
 
 import akka.Done;
-import com.betfair.aping.entities.Event;
+import akka.actor.ActorSystem;
+import com.betfair.aping.containers.ListMarketCatalogueContainer;
 import com.betfair.aping.entities.EventResult;
 import com.betfair.aping.entities.EventTypeResult;
+import com.betfair.aping.entities.MarketCatalogue;
 import com.betfair.aping.entities.MarketFilter;
+import com.betfair.aping.enums.MarketProjection;
+import com.betfair.aping.enums.MarketSort;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import less.stupid.betting.exchange.betfair.api.BetfairApi;
+import less.stupid.betting.exchange.betfair.api.exchange.stream.ResponseMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -26,10 +33,10 @@ public class BetfairClient implements SessionProvider {
 
     private BetfairSession session = BetfairSession.loggedOut();
 
-    public BetfairClient() {
-        BetfairConnection connection = new BetfairConnection(this, conf);
+    public BetfairClient(ActorSystem system) {
+        BetfairConnection connection = new AsyncHttpBetfairConnection(this, conf);
 
-        api = new BetfairApi(new BetfairConnection(this, conf));
+        api = new BetfairApi(connection);
         stream = new BetfairStream(this, new DefaultStreamRequestFactory(), conf);
     }
 
@@ -47,19 +54,23 @@ public class BetfairClient implements SessionProvider {
     }
 
     public CompletionStage<BetfairSession> login() {
-        return api.login().thenApply(response -> {
-            session = BetfairSession.loggedIn(response.getSessionToken(), conf.getString("betfair.applicationKey"));
-            return session;
-        });
+        return api.login().thenApply(response -> BetfairSession.loggedIn(response.getSessionToken(), conf.getString("betfair.applicationKey")));
     }
 
     public CompletionStage<List<EventTypeResult>> listEventTypes(MarketFilter filter) {
-        log.info("listing event types");
         return api.listEventTypes(filter).thenApply(response -> response.getResult());
     }
 
     public CompletionStage<List<EventResult>> listEvents(MarketFilter filter) {
-        log.info("listing events");
         return api.listEvents(filter).thenApply(response -> response.getResult());
+    }
+
+    public CompletionStage<List<MarketCatalogue>> listMarketCatalogue(MarketFilter filter, Set<MarketProjection> marketProjection, MarketSort sort, int maxResults) {
+        return api.listMarketCatalogue(filter, marketProjection, sort, maxResults).thenApply(response -> response.getResult());
+    }
+
+    public CompletionStage<ResponseMessage> subscribeToMarket(MarketFilter marketFilter, StreamRequest.MarketDataFilter marketDataFilter) {
+        log.info("subscribing to market {}", marketFilter);
+        return stream.subscribe(marketFilter, marketDataFilter);
     }
 }

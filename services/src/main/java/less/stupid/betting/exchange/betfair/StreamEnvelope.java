@@ -1,5 +1,7 @@
 package less.stupid.betting.exchange.betfair;
 
+import less.stupid.betting.exchange.betfair.api.exchange.stream.ResponseMessage;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -7,7 +9,7 @@ public class StreamEnvelope {
 
     private final StreamRequest request;
 
-    private CompletableFuture<StreamResponse> future;
+    private CompletableFuture<ResponseMessage> future;
 
     public StreamEnvelope(StreamRequest request) {
         this.request = request;
@@ -17,11 +19,19 @@ public class StreamEnvelope {
         return request;
     }
 
-    public CompletableFuture<StreamResponse> getFuture() {
+    public CompletableFuture<ResponseMessage> getFuture() {
         if (future == null) {
             future = new CompletableFuture<>();
         }
 
         return future;
+    }
+
+    @Override
+    public String toString() {
+        return "StreamEnvelope{" +
+                "request=" + request +
+                ", future=" + future +
+                '}';
     }
 }

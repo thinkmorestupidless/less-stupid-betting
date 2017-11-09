@@ -1,5 +1,6 @@
 package com.betfair.aping.entities;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class MarketCatalogue {
@@ -11,6 +12,7 @@ public class MarketCatalogue {
 	private EventType eventType;
 	private Competition competition;
 	private Event event;
+	private BigDecimal totalMatched;
 
 	public String getMarketId() {
 		return marketId;
@@ -72,4 +74,11 @@ public class MarketCatalogue {
 		return getMarketName();
 	}
 
+	public BigDecimal getTotalMatched() {
+		return totalMatched;
+	}
+
+	public void setTotalMatched(BigDecimal totalMatched) {
+		this.totalMatched = totalMatched;
+	}
 }

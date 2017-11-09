@@ -1,10 +1,10 @@
 package less.stupid.betting.exchange.betfair;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DefaultStreamRequestFactory {
 
-    private final AtomicLong counter = new AtomicLong();
+    private final AtomicInteger counter = new AtomicInteger();
 
     StreamRequest authentication(String sessionToken, String appKey) {
         return new StreamRequest.Authentication(counter.incrementAndGet(), sessionToken, appKey);

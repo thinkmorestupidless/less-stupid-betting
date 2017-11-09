@@ -2,9 +2,18 @@ package com.betfair.aping.entities;
 
 public class RunnerCatalog {
 
+	private Integer sortPriority;
 	private Long selectionId;
 	private String runnerName;
 	private Double handicap;
+
+	public Integer getSortPriority() {
+		return sortPriority;
+	}
+
+	public void setSortPriority(Integer sortPriority) {
+		this.sortPriority = sortPriority;
+	}
 
 	public Long getSelectionId() {
 		return selectionId;

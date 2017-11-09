@@ -43,11 +43,7 @@ public final class JavaWordCount {
       .getOrCreate();
 
     JavaRDD<String> lines = spark.read().textFile(args[0]).javaRDD();
-
     JavaRDD<String> words = lines.flatMap(s -> Arrays.asList(SPACE.split(s)).iterator());
-
-    System.out.println("first, i'm here");
-
     JavaPairRDD<String, Integer> ones = words.mapToPair(s -> new Tuple2<>(s, 1));
 
     System.out.println("here i am");

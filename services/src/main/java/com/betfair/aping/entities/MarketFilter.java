@@ -161,4 +161,25 @@ public class MarketFilter {
     public void setWithOrders(Set<OrderStatus> withOrders) {
         this.withOrders = withOrders;
     }
+
+    @Override
+    public String toString() {
+        return "MarketFilter{" +
+                "textQuery='" + textQuery + '\'' +
+                ", exchangeIds=" + exchangeIds +
+                ", eventTypeIds=" + eventTypeIds +
+                ", marketIds=" + marketIds +
+                ", inPlayOnly=" + inPlayOnly +
+                ", eventIds=" + eventIds +
+                ", competitionIds=" + competitionIds +
+                ", venues=" + venues +
+                ", bspOnly=" + bspOnly +
+                ", turnInPlayEnabled=" + turnInPlayEnabled +
+                ", marketBettingTypes=" + marketBettingTypes +
+                ", marketCountries=" + marketCountries +
+                ", marketTypeCodes=" + marketTypeCodes +
+                ", marketStartTime=" + marketStartTime +
+                ", withOrders=" + withOrders +
+                '}';
+    }
 }

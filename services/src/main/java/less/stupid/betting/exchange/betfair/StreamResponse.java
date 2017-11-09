@@ -11,7 +11,8 @@ import lombok.Value;
 )
 @JsonSubTypes({
         @JsonSubTypes.Type(value = StreamResponse.Connection.class, name = "connection"),
-        @JsonSubTypes.Type(value = StreamResponse.Status.class, name = "status")
+        @JsonSubTypes.Type(value = StreamResponse.Status.class, name = "status"),
+        @JsonSubTypes.Type(value = io.swagger.client.model.MarketChangeMessage.class, name = "mcm")
 })
 public interface StreamResponse {
 

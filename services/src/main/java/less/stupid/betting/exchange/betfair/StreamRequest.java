@@ -1,8 +1,11 @@
 package less.stupid.betting.exchange.betfair;
 
+import com.betfair.aping.entities.MarketFilter;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.Value;
+
+import java.util.Set;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
@@ -10,19 +13,38 @@ import lombok.Value;
         property = "op"
 )
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = StreamRequest.Authentication.class, name = "authentication")
+        @JsonSubTypes.Type(value = StreamRequest.Authentication.class, name = "authentication"),
+        @JsonSubTypes.Type(value = StreamRequest.MarketSubscription.class, name = "marketSubscription")
 })
 public interface StreamRequest {
 
-    long getId();
+    int getId();
 
     @Value
     public static class Authentication implements StreamRequest {
 
-        private final long id;
+        private final int id;
 
         private final String session;
 
         private final String appKey;
+    }
+
+    @Value
+    public static class MarketSubscription implements StreamRequest {
+
+        private final int id;
+
+        private final MarketFilter marketFilter;
+
+        private final MarketDataFilter marketDataFilter;
+    }
+
+    @Value
+    class MarketDataFilter {
+
+        private final Set<Object> fields;
+
+        private final int ladderLevels;
     }
 }

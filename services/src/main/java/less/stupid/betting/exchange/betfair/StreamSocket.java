@@ -3,8 +3,11 @@ package less.stupid.betting.exchange.betfair;
 import akka.Done;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
+import less.stupid.betting.exchange.betfair.api.exchange.stream.ConnectionMessage;
+import less.stupid.betting.exchange.betfair.api.exchange.stream.ResponseMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +17,7 @@ import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -23,9 +27,9 @@ public class StreamSocket {
 
     private static final String CRLF = "\r\n";
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper;
 
-    private final Map<Long, StreamEnvelope> envelopes = Maps.newHashMap();
+    private final Map<Integer, StreamEnvelope> envelopes = Maps.newHashMap();
 
     private final SessionProvider sessions;
 
@@ -41,13 +45,20 @@ public class StreamSocket {
 
     private Thread readThread;
 
+    private Optional<ResponseMessage> authenticated = Optional.empty();
+
     public StreamSocket(SessionProvider sessions, DefaultStreamRequestFactory requests, Config conf) {
         this.sessions = sessions;
         this.requests = requests;
         this.conf = conf;
+
+        mapper = new ObjectMapper();
+        mapper.registerModule(new JodaModule());
     }
 
-    public CompletionStage<StreamResponse> send(StreamRequest request) {
+    public CompletionStage<ResponseMessage> send(StreamRequest request) {
+        log.info("sending {}", request);
+
         StreamEnvelope envelope = new StreamEnvelope(request);
 
         envelopes.put(request.getId(), envelope);
@@ -60,7 +71,7 @@ public class StreamSocket {
     public void doSend(Object message) {
         try {
             String line = mapper.writeValueAsString(message);
-            log.info("writing -> {}", line);
+            log.debug("writing -> {}", line);
 
             writer.write(line);
             writer.write(CRLF);
@@ -72,10 +83,24 @@ public class StreamSocket {
         }
     }
 
-    public CompletionStage<StreamResponse> authenticate() {
+    public CompletionStage<ResponseMessage> authenticate() {
+        log.info("authenticating {}", authenticated);
+
+        if (authenticated.isPresent()) {
+            log.info("already authenticated - noop");
+
+            return CompletableFuture.completedFuture(authenticated.get());
+        }
+
+        log.info("setting up the socket and sending auth");
+
         return connect().thenCompose(
                 ignored -> sessions.session().thenCompose(
-                        session -> send(requests.authentication(session.sessionToken(), session.applicationKey()))));
+                        session -> send(requests.authentication(session.sessionToken(), session.applicationKey())).thenApply(response -> {
+                            log.info("authentication successful");
+                            authenticated = Optional.of(response);
+                            return response;
+                        })));
     }
 
     public CompletionStage<Socket> connect() {
@@ -95,7 +120,7 @@ public class StreamSocket {
         CompletableFuture future = new CompletableFuture();
 
         try {
-            Socket socket = _socket();
+            Socket socket = createSocket();
             socket.setReceiveBufferSize(1024 * 100 * 2);
             socket.setSoTimeout(30 * 1000);
 
@@ -108,10 +133,10 @@ public class StreamSocket {
                         try {
                             String line = reader.readLine();
 
-                            StreamResponse response = mapper.readValue(line, StreamResponse.class);
+                            ResponseMessage response = mapper.readValue(line, ResponseMessage.class);
 
-                            if (response instanceof StreamResponse.Connection) {
-                                log.info("connection response received");
+                            if (response instanceof ConnectionMessage) {
+                                log.debug("connection response received");
 
                                 future.complete(socket);
                             } else {
@@ -126,13 +151,13 @@ public class StreamSocket {
                                 }
                             }
                         } catch (Exception e) {
-                            log.error("problem reading from socket -> {}", e);
+                            log.error("problem reading from socket", e);
                         }
 
                         try {
                             Thread.sleep(100);
                         } catch (InterruptedException e) {
-                            log.error("interruption -> {}", e);
+                            log.error("interruption", e);
                         }
                     }
                 }
@@ -149,7 +174,7 @@ public class StreamSocket {
         return future;
     }
 
-    public Socket _socket() {
+    public Socket createSocket() {
         String hostName = conf.getString("betfair.stream.uri");
         int port = 80;
 

@@ -1,13 +1,19 @@
-package less.stupid.betting.exchange.betfair;
+package less.stupid.betting.exchange.betfair.api;
 
 import com.betfair.aping.containers.EventResultContainer;
 import com.betfair.aping.containers.EventTypeResultContainer;
+import com.betfair.aping.containers.ListMarketCatalogueContainer;
 import com.betfair.aping.entities.MarketFilter;
+import com.betfair.aping.enums.MarketProjection;
+import com.betfair.aping.enums.MarketSort;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import less.stupid.betting.exchange.betfair.BetfairConnection;
+import less.stupid.betting.exchange.betfair.LoginResponse;
+import less.stupid.betting.exchange.betfair.api.exchange.ExchangeApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 import static com.opengamma.strata.collect.Unchecked.wrap;
@@ -20,8 +26,12 @@ public class BetfairApi implements ApiConstants, ApiOperations {
 
     private final BetfairConnection connection;
 
+    private final ExchangeApi exchange;
+
     public BetfairApi(BetfairConnection connection) {
         this.connection = connection;
+
+        exchange = new ExchangeApi(connection);
     }
 
     public CompletionStage<LoginResponse> login() {
@@ -34,33 +44,14 @@ public class BetfairApi implements ApiConstants, ApiOperations {
     }
 
     public CompletionStage<EventTypeResultContainer> listEventTypes(MarketFilter filter) {
-        log.info("listing event types");
-
-        JsonRequest request = JsonRequest.create()
-                .withMethod(LIST_EVENT_TYPES)
-                .withParam(LOCALE, Locale.getDefault())
-                .withParam(FILTER, filter);
-
-        String json = wrap(() -> mapper.writeValueAsString(request));
-
-        return connection.execute(json)
-                .thenApply(body -> wrap(() -> mapper.readValue(body, EventTypeResultContainer.class)));
+        return exchange.listEventTypes(filter);
     }
 
     public CompletionStage<EventResultContainer> listEvents(MarketFilter filter) {
-        log.info("listing events");
+        return exchange.listEvents(filter);
+    }
 
-        JsonRequest request = JsonRequest.create()
-                .withMethod(LIST_EVENTS)
-                .withParam(LOCALE, Locale.getDefault())
-                .withParam(FILTER, filter);
-
-        String json = wrap(() -> mapper.writeValueAsString(request));
-
-        return connection.execute(json)
-                .thenApply(body -> {
-                    log.info(body);
-                    return wrap(() -> mapper.readValue(body, EventResultContainer.class));
-                });
+    public CompletionStage<ListMarketCatalogueContainer> listMarketCatalogue(MarketFilter filter, Set<MarketProjection> marketProjection, MarketSort sort, int maxResults) {
+        return exchange.listMarketCatalogue(filter, marketProjection, sort, maxResults);
     }
 }
