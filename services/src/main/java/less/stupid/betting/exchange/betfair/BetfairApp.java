@@ -1,13 +1,13 @@
 package less.stupid.betting.exchange.betfair;
 
-import akka.actor.ActorSystem;
 import com.betfair.aping.entities.EventResult;
 import com.betfair.aping.entities.MarketCatalogue;
 import com.betfair.aping.entities.MarketFilter;
 import com.betfair.aping.enums.MarketProjection;
 import com.betfair.aping.enums.MarketSort;
+import com.betfair.client.BetfairClient;
+import com.betfair.client.asynchttp.AsyncHttpBetfairClient;
 import com.google.common.collect.Sets;
-import com.typesafe.config.ConfigFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +23,7 @@ public class BetfairApp {
     }
 
     public static void testMarketCollection() {
-        BetfairClient client = new BetfairClient(ActorSystem.create());
+        BetfairClient client = new AsyncHttpBetfairClient();
 
 //        client.listEventTypes(new MarketFilter())
 //                .exceptionally(t -> {
@@ -31,9 +31,10 @@ public class BetfairApp {
 //                    return Collections.emptyList();
 //                }).thenAccept(result -> log.info("result is -> {}", result));
 
-        MarketFilter filter = new MarketFilter();
-        filter.setEventTypeIds(Sets.newHashSet("1"));
-        filter.setMarketCountries(Sets.newHashSet("GB"));
+        MarketFilter filter = MarketFilter.builder()
+                .eventTypeIds(Sets.newHashSet("1"))
+                .marketCountries(Sets.newHashSet("GB"))
+                .build();
 
         client.listEvents(filter)
                 .exceptionally(t -> {
@@ -45,8 +46,9 @@ public class BetfairApp {
                     if (result.size() > 0) {
                         EventResult first = result.get(0);
 
-                        MarketFilter filter2 = new MarketFilter();
-                        filter.setEventIds(Sets.newHashSet(first.getEvent().getId()));
+                        MarketFilter filter2 = MarketFilter.builder()
+                                .eventIds(Sets.newHashSet(first.getEvent().getId()))
+                                .build();
 
                         Set<MarketProjection> projections = Sets.newHashSet(MarketProjection.COMPETITION, MarketProjection.RUNNER_DESCRIPTION);
                         MarketSort sort = MarketSort.MAXIMUM_TRADED;
@@ -63,8 +65,9 @@ public class BetfairApp {
                                 if (catalogue.getMarketName().equals("Match Odds")) {
                                     log.info("subscribing to market {}", catalogue.getMarketId());
 
-                                    MarketFilter streamFilter = new MarketFilter();
-                                    streamFilter.setMarketIds(Sets.newHashSet(catalogue.getMarketId()));
+                                    MarketFilter streamFilter = MarketFilter.builder()
+                                            .marketIds((Sets.newHashSet(catalogue.getMarketId())))
+                                            .build();
 
                                     client.subscribeToMarket(streamFilter, null).thenAccept(response -> {
                                         log.info("response -> " + response);
